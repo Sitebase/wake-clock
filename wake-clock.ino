@@ -113,10 +113,6 @@ void setup() {
   Serial.println(udp.localPort());
 
   setTime(myTZ.toUTC(compileTime()));
-
-  //Serial.println("I'm awake, but I'm going into deep sleep mode for 30 seconds");
-  //ESP.deepSleep(30e6); 
-
 }
 
 void loop() {
