@@ -191,11 +191,10 @@ void loop() {
       }
     }
 
-    Serial.print("state = ");
-    Serial.println(state);
-    // wait ten seconds before asking for the time again
-    //delay(30000);
-    ESP.deepSleep(300e6); // 5 minutes sleep
+    // if no LED has to be on we can go to deep sleep
+    if (state == SLEEP || state == DAY) {
+      ESP.deepSleep(300e6); // 5 minutes sleep
+    }
   }
 }
 
