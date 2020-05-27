@@ -39,8 +39,6 @@ int BRIGHT_LEVEL = 255;
 #include <Timezone.h>
 #include "credentials.h"
 
-#define MODE_BUTTON 12
-#define BUZZER_PIN 5
 #define LED_RED_PIN 4
 #define LED_GREEN_PIN 14
 
@@ -49,11 +47,6 @@ int BRIGHT_LEVEL = 255;
 #define SLEEP 1
 #define DOZE  2
 #define WAKE  3
-
-#define MODE_OFF          0
-#define MODE_WAKE_CLOCK   1
-#define MODE_GAME         2
-uint8_t mode = MODE_OFF;
 
 /* Set these WiFi details in the credentials.h file so they don't get included in the git repo */
 const char* ssid     = STASSID;
@@ -121,49 +114,9 @@ void setup() {
 
   setTime(myTZ.toUTC(compileTime()));
 
-  pinMode(MODE_BUTTON, INPUT);
-  attachInterrupt(digitalPinToInterrupt(MODE_BUTTON), gosleep, CHANGE);
-
   //Serial.println("I'm awake, but I'm going into deep sleep mode for 30 seconds");
   //ESP.deepSleep(30e6); 
 
-}
-
-// ICACHE_RAM_ATTR seems to be needed for esp 2.5.2 firmware
-ICACHE_RAM_ATTR void gosleep() {
-
-  if (digitalRead(MODE_BUTTON) == HIGH) {
-    if (mode == MODE_OFF) {
-      mode = MODE_WAKE_CLOCK;
-    } else if (mode == MODE_WAKE_CLOCK) {
-      mode = MODE_GAME;
-    } else if (mode == MODE_GAME) {
-      mode = MODE_OFF;
-    }
-    Serial.print("Mode change");
-    Serial.println(mode);
-
-     if (mode == MODE_OFF) {
-        Serial.print("Mode off");
-        digitalWrite(LED_GREEN_PIN, LOW);
-        digitalWrite(LED_RED_PIN, HIGH);
-      }
-      if (mode == MODE_WAKE_CLOCK) {
-        Serial.print("Mode wake clock");
-        digitalWrite(LED_GREEN_PIN, HIGH);
-        digitalWrite(LED_RED_PIN, LOW);
-      }
-      if (mode == MODE_GAME) {
-        Serial.print("Mode game");
-        digitalWrite(LED_GREEN_PIN, HIGH);
-        digitalWrite(LED_RED_PIN, HIGH);
-      }
-  } 
-
-  if (digitalRead(MODE_BUTTON) == LOW) {
-    digitalWrite(LED_GREEN_PIN, LOW);
-    digitalWrite(LED_RED_PIN, LOW);
-  } 
 }
 
 void loop() {
@@ -180,16 +133,8 @@ void loop() {
     else break;
   }
   setTime(myUTC);
-
-  char wifi_state = 1;
   
   while(1) {
-    if (wifi_state) {
-      if (millis() > MINUTES_BEFORE_WIFI_SHUTOFF*60*1000) {
-        WiFi.forceSleepBegin();
-        wifi_state = 0;
-      }
-    }
 
     time_t utc = now();
     time_t local = myTZ.toLocal(utc, &tcr);
@@ -246,43 +191,16 @@ void loop() {
       }
     }
 
-    if (mode == MODE_GAME) {
-      play_sound();
-    }
-
     Serial.print("state = ");
     Serial.println(state);
     // wait ten seconds before asking for the time again
-    delay(30000);
+    //delay(30000);
+    ESP.deepSleep(300e6); // 5 minutes sleep
   }
 }
 
 int big_time(int hoursmins[2]) {
   return (hoursmins[0]*60) + hoursmins[1];
-}
-
-void play_sound() {
-    tone(BUZZER_PIN,2000);
-    delay(250);
-    tone(BUZZER_PIN,1500);
-    delay(500);
-    tone(BUZZER_PIN,500);
-    delay(250);
-    tone(BUZZER_PIN,1500);
-    delay(500);
-    tone(BUZZER_PIN,1000);
-    delay(250);
-    tone(BUZZER_PIN,1500);
-    delay(250);
-    tone(BUZZER_PIN,1000);
-    delay(500);
-    tone(BUZZER_PIN,200);
-    delay(250);
-    tone(BUZZER_PIN,1200);
-    delay(500);
-    tone(BUZZER_PIN,800);
-    delay(250);
-    noTone(BUZZER_PIN);
 }
 
 void change_lights(int state) {
@@ -326,6 +244,8 @@ unsigned long getUTC(void) {
     // We've received a packet, read the data from it
     udp.read(packetBuffer, NTP_PACKET_SIZE); // read the packet into the buffer
 
+    // if NTP packet received we can go to sleep
+    WiFi.forceSleepBegin();
     //the timestamp starts at byte 40 of the received packet and is four bytes,
     // or two words, long. First, esxtract the two words:
 
