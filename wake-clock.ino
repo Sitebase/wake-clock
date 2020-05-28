@@ -187,6 +187,8 @@ void loop() {
     // if no LED has to be on we can go to deep sleep
     if (state == SLEEP || state == DAY) {
       ESP.deepSleep(300e6); // 5 minutes sleep
+    } else {
+      delay(30000);
     }
   }
 }
