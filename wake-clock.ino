@@ -92,11 +92,8 @@ void setup() {
   WiFi.begin(ssid, password);
 
   while (WiFi.status() != WL_CONNECTED) {
-    digitalWrite(LED_GREEN_PIN, HIGH);
-    delay(500);
     Serial.print(".");
-    digitalWrite(LED_GREEN_PIN, LOW);
-    delay(500);
+    delay(1000);
   }
 
 
