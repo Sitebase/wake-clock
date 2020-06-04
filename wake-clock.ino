@@ -26,6 +26,9 @@ int DAY_TIME[2] = { 7, 30 };
 #define DOZE  2
 #define WAKE  3
 
+/* Initial light state */
+uint8_t currentState = DAY;
+
 /* Set these WiFi details in the credentials.h file so they don't get included in the git repo */
 const char* ssid     = STASSID;
 const char* password = STAPSK;
@@ -54,7 +57,7 @@ void setup() {
   pinMode(LED_GREEN_PIN, OUTPUT);
   pinMode(LED_RED_PIN, OUTPUT);
 
-  change_lights(DAY); // will turn all the lights off
+  set_light_state(currentState); // will turn all the lights off
 
   wifi_connect();
 
@@ -67,9 +70,6 @@ void setup() {
 }
 
 void loop() {
-  uint8_t state = DAY;
-  change_lights(state);
-
   unsigned long myUTC;
   while (1) {
     myUTC = getUTC();
@@ -105,39 +105,25 @@ void loop() {
     Serial.print("SLEEP_TIME = ");
     Serial.println(big_time(SLEEP_TIME));
 
-    //Day = <Sleep and >Day
+    // Day
     //FIXME: This assumes SLEEP will start at night and not in the early morning (eg: 00:12 for 12:12am would trip this up)
-    if ((rn >= big_time(DAY_TIME)) && (rn < big_time(SLEEP_TIME))) {
-      if (state != DAY) {
-        state = DAY;
-        change_lights(state);
-      }
-    }
-    //Doze = <Wake and >=Doze
-    else if ((rn >= big_time(DOZE_TIME)) && (rn < big_time(WAKE_TIME))) {
-      if (state != DOZE) {
-        state = DOZE;
-        change_lights(state);
-      }
-    }
+    if ((rn >= big_time(DAY_TIME)) && (rn < big_time(SLEEP_TIME)) && (currentState != DAY))
+      set_light_state(DAY);
+      
+    // Doze
+    if ((rn >= big_time(DOZE_TIME)) && (rn < big_time(WAKE_TIME)) && (currentState != DOZE))
+      set_light_state(DOZE);
     
-    //Wake = <Day and >=Wake
-    else if ((rn >= big_time(WAKE_TIME)) && (rn < big_time(DAY_TIME))) {
-      if (state != WAKE) {
-        state = WAKE;
-        change_lights(state);
-      }
-    }
-    //Sleep = <Doze and >=Sleep
-    else if ((rn >= big_time(SLEEP_TIME)) || (rn < big_time(DOZE_TIME))) {
-      if (state != SLEEP) {
-        state = SLEEP;
-        change_lights(state);
-      }
-    }
+    // Wake
+    if ((rn >= big_time(WAKE_TIME)) && (rn < big_time(DAY_TIME)) && (currentState != WAKE))
+      set_light_state(WAKE);
+
+    // Sleep
+    if (((rn >= big_time(SLEEP_TIME)) || (rn < big_time(DOZE_TIME))) && (currentState != SLEEP))
+      set_light_state(SLEEP);
 
     // if no LED has to be on we can go to deep sleep
-    if (state == SLEEP || state == DAY) {
+    if (currentState == SLEEP || currentState == DAY) {
       ESP.deepSleep(300e6); // 5 minutes sleep
     } else {
       delay(30000);
@@ -169,9 +155,10 @@ void wifi_connect() {
   Serial.println(WiFi.localIP());
 }
 
-void change_lights(int state) {
+void set_light_state(uint8_t state) {
   Serial.print("change light state to = ");
   Serial.println(state);
+  currentState = state;
 
   if (state == DAY) {
     digitalWrite(LED_GREEN_PIN, LOW);
