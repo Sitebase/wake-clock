@@ -53,16 +53,10 @@ void setup() {
   
   pinMode(LED_GREEN_PIN, OUTPUT);
   pinMode(LED_RED_PIN, OUTPUT);
-  digitalWrite(LED_GREEN_PIN, LOW);
-  digitalWrite(LED_RED_PIN, LOW);
-
-  // We start by connecting to a WiFi network
-
-  
-
-  wifi_connect();
 
   change_lights(DAY); // will turn all the lights off
+
+  wifi_connect();
 
   Serial.println("Starting UDP");
   udp.begin(localPort);
@@ -110,8 +104,6 @@ void loop() {
     Serial.println(big_time(WAKE_TIME));
     Serial.print("SLEEP_TIME = ");
     Serial.println(big_time(SLEEP_TIME));
-
-    
 
     //Day = <Sleep and >Day
     //FIXME: This assumes SLEEP will start at night and not in the early morning (eg: 00:12 for 12:12am would trip this up)
