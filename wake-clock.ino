@@ -1,30 +1,8 @@
-/*
-    Okay to wake clock
-    Copyright 2020, Mike Szczys
-
-    Uses OTA update
-
-    Features:
-
-    * Turns on red LEDs at 7pm
-    * Changes to yellow LEDs at 5:30am
-    * Changes to green LEDs at 6:30am
-    * Turns of LEDs at 7:30am
-    * Time is set via NTP at power-up
-    * OTA updates are available for 10 minutes after powerup at which point WiFi is shut off for power savings
-*/
-
 /* User timer settings: { hours, minutes } */
 int SLEEP_TIME[2] = { 19, 15 };
 int DOZE_TIME[2] = { 6, 30 };
 int WAKE_TIME[2] = { 7, 0 };
 int DAY_TIME[2] = { 7, 30 };
-
-//How many minutes to leave WiFi on after power-up for purposes of over-the-air-updates
-int MINUTES_BEFORE_WIFI_SHUTOFF = 10;
-//LED Brightness (0-255)
-int BRIGHT_LEVEL = 255;
-
 
 /*
  * Library Dependencies:
