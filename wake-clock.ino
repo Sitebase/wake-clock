@@ -3,13 +3,6 @@ int SLEEP_TIME[2] = { 19, 15 };
 int DOZE_TIME[2] = { 6, 30 };
 int WAKE_TIME[2] = { 7, 0 };
 int DAY_TIME[2] = { 7, 30 };
-
-/*
- * Library Dependencies:
- * Timezone by Jack Christensen
- * Time (install as a dependency of Timezone)
- * Adafruit NeoPixel
- */
  
 /* Includes */
 #include <ESP8266WiFi.h>
