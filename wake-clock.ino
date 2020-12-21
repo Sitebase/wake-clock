@@ -7,11 +7,14 @@ int DAY_TIME[2] = { 7, 30 };
 /* Includes */
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
+#include <ESP8266mDNS.h>
 #include <Timezone.h>
+#include <ArduinoOTA.h>
 #include "credentials.h"
 
 #define LED_RED_PIN 4
 #define LED_GREEN_PIN 14
+#define MODE_BUTTON 12
 
 /* State machine definitions */
 #define DAY   0
@@ -19,12 +22,24 @@ int DAY_TIME[2] = { 7, 30 };
 #define DOZE  2
 #define WAKE  3
 
+/* Modes */
+#define PROGRAM 0
+#define CLOCK   1
+
 /* Initial light state */
 uint8_t currentState = DAY;
 
-/* Set these WiFi details in the credentials.h file so they don't get included in the git repo */
+/* Set these WiFi details in the credentials.h file so they don't get included in the git repo 
+
+Content should look like:
+#define STASSID "YOURSSID"
+#define STAPSK "YOURPASSWORD"
+*/
 const char* ssid     = STASSID;
 const char* password = STAPSK;
+
+int modus = CLOCK;
+int buttonState = 0;
 
 //UDP stuff for NTP internet time lookup
 //https://www.geekstips.com/arduino-time-sync-ntp-server-esp8266-udp/
@@ -40,7 +55,7 @@ WiFiUDP udp;
 //https://github.com/JChristensen/Timezone/blob/master/examples/Clock/Clock.ino
 // US Eastern Time Zone (New York, Detroit)
 TimeChangeRule myDST = {"CDT", Second, Sun, Mar, 2, +120};    // Daylight time = UTC - 5 hours
-TimeChangeRule mySTD = {"DST", First, Sun, Nov, 2, -60};     // Standard time = UTC - 6 hours
+TimeChangeRule mySTD = {"DST", First, Sun, Nov, 2, +60};     // Standard time = UTC - 6 hours
 Timezone myTZ(myDST, mySTD);
 TimeChangeRule *tcr;        // pointer to the time change rule, use to get TZ abbrev
 
@@ -49,10 +64,19 @@ void setup() {
   
   pinMode(LED_GREEN_PIN, OUTPUT);
   pinMode(LED_RED_PIN, OUTPUT);
+  pinMode(MODE_BUTTON, INPUT_PULLUP);
 
   set_light_state(currentState); // will turn all the lights off
 
   wifi_connect();
+
+  // set device in program mode if button is high while starting
+  if (digitalRead(MODE_BUTTON) == LOW) {
+    modus = PROGRAM;
+    Serial.print("Enable program mode");
+    digitalWrite(LED_GREEN_PIN, HIGH);
+    digitalWrite(LED_RED_PIN, HIGH);
+  }
 
   Serial.println("Starting UDP");
   udp.begin(localPort);
@@ -60,19 +84,65 @@ void setup() {
   Serial.println(udp.localPort());
 
   setTime(myTZ.toUTC(compileTime()));
+
+  ArduinoOTA.setHostname("wake-clock");
+  ArduinoOTA.onStart([]() {
+    String type;
+    if (ArduinoOTA.getCommand() == U_FLASH) {
+      type = "sketch";
+    } else { // U_SPIFFS
+      type = "filesystem";
+    }
+
+    // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+    Serial.println("Start updating " + type);
+  });
+  ArduinoOTA.onEnd([]() {
+    digitalWrite(LED_GREEN_PIN, HIGH);
+    digitalWrite(LED_RED_PIN, LOW);
+    ESP.restart(); // ensures we can reupload program again without having to manual reset ESP
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    digitalWrite(LED_GREEN_PIN, LOW);
+    digitalWrite(LED_RED_PIN, HIGH);
+    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) {
+      Serial.println("Auth Failed");
+    } else if (error == OTA_BEGIN_ERROR) {
+      Serial.println("Begin Failed");
+    } else if (error == OTA_CONNECT_ERROR) {
+      Serial.println("Connect Failed");
+    } else if (error == OTA_RECEIVE_ERROR) {
+      Serial.println("Receive Failed");
+    } else if (error == OTA_END_ERROR) {
+      Serial.println("End Failed");
+    }
+  });
+  ArduinoOTA.begin();
+  Serial.println("Ready");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  Serial.print("Mode: ");
+  Serial.println(modus);
+  Serial.println(digitalRead(MODE_BUTTON));
 }
 
 void loop() {
-  unsigned long myUTC;
-  while (1) {
-    myUTC = getUTC();
-    if (myUTC == 0) {
-      delay(2000);
-      Serial.println("Retrying...");
-    }
-    else break;
+  if (modus == PROGRAM) {
+    ArduinoOTA.handle();
+  } else {
+    run();
   }
-  setTime(myUTC);
+  //buttonState = digitalRead(MODE_BUTTON);
+  //Serial.print("Button state: ");
+  //Serial.println(buttonState);
+}
+
+void run() {
   
   while(1) {
 
