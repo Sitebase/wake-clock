@@ -1,5 +1,6 @@
 # Wake Clock
-
+Simple wake clock to indicate to my son when it's okay to wake up.
+![Preview clock](preview.jpg)
 
 ## States
 * Day
@@ -13,7 +14,6 @@
 
 ## Problems
 * GPIO16 and GPIO13 didn't seem to work with pull up
-* OTA always have to upload 2 times (first times No answer error)
 
 ## Credits
 Some of the code is inspired on the [Okay-to-Wake Clock](https://hackaday.io/project/171671-improved-okay-to-wake-clock/discussion-145270) by Mike Szczys. 
