@@ -1,6 +1,8 @@
-# Wake Clock
-Simple wake clock to indicate to my son when it's okay to wake up.
 ![Preview clock](preview.jpg)
+
+# Wifi connected wake clock
+Simple wake clock to indicate to my son when it's okay to wake up.
+I've used a ESP8266 as controller for this clock. For more details about the project check out [my blog post](http://sitebase.be/wake-clock/).
 
 ## States
 * Day
