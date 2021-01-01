@@ -12,6 +12,7 @@ int DAY_TIME[2] = { 7, 30 };
 #include <ArduinoOTA.h>
 #include "credentials.h"
 
+/* Pins */
 #define LED_RED_PIN 4
 #define LED_GREEN_PIN 14
 #define MODE_BUTTON 12
@@ -143,6 +144,17 @@ void loop() {
 }
 
 void run() {
+
+  unsigned long myUTC;
+  while (1) {
+    myUTC = getUTC();
+    if (myUTC == 0) {
+      delay(2000);
+      Serial.println("Retrying...");
+    }
+    else break;
+  }
+  setTime(myUTC);
   
   while(1) {
 
@@ -326,7 +338,6 @@ unsigned long sendNTPpacket(IPAddress& address)
   udp.write(packetBuffer, NTP_PACKET_SIZE);
   udp.endPacket();
 }
-
 
 // Function to return the compile date and time as a time_t value
 time_t compileTime()
